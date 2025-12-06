@@ -24,3 +24,6 @@ papers/*
 !papers/.gitkeep
 papers/processed/*
 !papers/processed/.gitkeep
+
+# Exclude Infographics
+infographics/

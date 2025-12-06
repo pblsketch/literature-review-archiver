@@ -78,3 +78,37 @@ python main.py
 
 ## ⚠️ 주의사항
 - `service_account_key.json` 파일과 `.env` 파일은 **절대로** 타인과 공유하거나 깃허브 등에 올리지 마세요. 개인 보안 정보가 포함되어 있습니다.
+
+## 📊 Notion 데이터베이스 설정 (권장)
+Notion 데이터베이스를 새로 만들 때, 아래 속성(Property)들을 미리 만들어두어야 코드가 정상 작동합니다.
+
+| 속성 이름 | 속성 유형 (Type) |
+| --- | --- |
+| **논문 제목** | 제목 (Title) |
+| **저자** | 텍스트 (Text) |
+| **발행연도** | 숫자 (Number) |
+| **학술지명/출처** | 텍스트 (Text) |
+| **페이지** | 텍스트 (Text) |
+| **핵심 키워드** | 다중 선택 (Multi-select) |
+| **유형** | 선택 (Select) |
+| **읽음 상태** | 상태 (Status) - 기본값: '읽을 예정' |
+| **권(호)** | 텍스트 (Text) |
+| **URL/DOI** | URL |
+| **파일 첨부** | 파일과 미디어 (Files & Media) |
+
+## 🧠 Gemini 시스템 프롬프트 (참고용)
+AI가 논문을 분석할 때 사용하는 프롬프트입니다. `utils/gemini_utils.py` 파일에서 수정할 수 있습니다.
+
+> **Role**: Expert Academic Researcher
+> 
+> **Analysis Points**:
+> 1. **Metadata Extraction**: Title, Authors, Year, Journal, Page, Keywords, Type, DOI, etc.
+> 2. **Detailed Summary**:
+>    - 연구 목적 및 필요성
+>    - 이론적 배경 (핵심 이론, 개념 정의)
+>    - 연구 방법 (설계, 참여자, 데이터 수집)
+>    - **연구 결과 (상세 분석 및 인용구 포함)**
+>    - 논의 및 시사점
+> 3. **Contextual Connection**: '마을교육공동체에 참여하는 중학교 교사들의 관계적 행위자성' 연구와의 연관성 분석
+
+*자세한 프롬프트 내용은 소스 코드를 확인하세요.*

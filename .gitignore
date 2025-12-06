@@ -1,0 +1,26 @@
+# Environment Variables
+.env
+
+# Google Cloud Service Account Key
+service_account_key.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Papers - Ignore all PDFs and processed files (Save space on GitHub)
+papers/*
+!papers/.gitkeep
+papers/processed/*
+!papers/processed/.gitkeep

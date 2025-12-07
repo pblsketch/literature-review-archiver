@@ -7,9 +7,17 @@ def analyze_pdf(pdf_path):
     """
     Analyzes a PDF using Gemini 2.5 Flash Lite (API Key) to extract metadata and summary.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    """
+    Analyzes a PDF using Gemini 2.5 Flash Lite (API Key) to extract metadata and summary.
+    """
+    try:
+        import streamlit as st
+        api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    except ImportError:
+        api_key = os.environ.get("GEMINI_API_KEY")
+
     if not api_key:
-        raise ValueError("GEMINI_API_KEY not found in environment.")
+        raise ValueError("GEMINI_API_KEY not found in environment or secrets.")
         
     genai.configure(api_key=api_key)
     

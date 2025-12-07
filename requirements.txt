@@ -4,3 +4,4 @@ google-auth
 notion-client
 python-dotenv
 google-generativeai
+streamlit

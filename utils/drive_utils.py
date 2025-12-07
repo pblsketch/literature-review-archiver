@@ -5,8 +5,23 @@ import os
 
 def get_drive_service():
     """
-    Authenticates using Google Application Default Credentials (Environment Auth).
+    Authenticates using Streamlit Secrets (Cloud) or Google Application Default Credentials (Local).
     """
+    import streamlit as st
+    from google.oauth2 import service_account
+
+    # 1. Try Streamlit Secrets (for Cloud Deployment)
+    if "gcp_service_account" in st.secrets:
+        # Create credentials from the secrets dictionary
+        service_account_info = st.secrets["gcp_service_account"]
+        creds = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=['https://www.googleapis.com/auth/drive.readonly']
+        )
+        service = build('drive', 'v3', credentials=creds)
+        return service
+
+    # 2. Fallback to Local Environment (Environment Variable / JSON file)
     # Changed scope to readonly to search for existing files
     creds, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/drive.readonly'])
     service = build('drive', 'v3', credentials=creds)

@@ -54,7 +54,31 @@ NOTION_DATABASE_ID=8d2j3...
 GOOGLE_APPLICATION_CREDENTIALS=./service_account_key.json
 ```
 
-### 3. 실행하기
+## ☁️ Streamlit Community Cloud 배포 방법 (Deployment)
+
+이 웹사이트를 **항상 켜져 있는 웹사이트**로 만들려면 Streamlit Cloud를 사용하세요.
+
+1. 이 프로젝트를 본인의 GitHub 저장소에 올립니다. (주의: `.env` 파일과 `secrets.toml` 파일은 올리지 마세요!)
+2. [Streamlit Cloud](https://streamlit.io/cloud)에 가입하고 'New app'을 만듭니다.
+3. GitHub 저장소와 `app.py`를 선택합니다.
+4. **Advanced settings -> Secrets** 메뉴에 `secrets.toml.example` 파일의 내용을 복사해서 붙여넣습니다.
+    - 이때, `GEMINI_API_KEY`, `NOTION_KEY`, `NOTION_DATABASE_ID` 값을 본인 것으로 채웁니다.
+    - `[gcp_service_account]` 아래 내용은 `service_account_key.json` 파일을 열어서 해당하는 값을 복사해 넣습니다.
+5. 'Deploy' 버튼을 누르면 끝! 🎉
+
+## 🚀 실행 방법 (Usage)
+
+### 방법 1: 웹 인터페이스 (Streamlit) - **강력 추천** 🌟
+편리한 웹 화면에서 드래그 앤 드롭으로 파일을 분석할 수 있습니다.
+
+```bash
+streamlit run app.py
+```
+- 터미널에 표시되는 URL(보통 `http://localhost:8501`)을 클릭하여 접속합니다.
+- 사이드바에서 **Notion Database ID**를 입력합니다 (또는 `.env` 파일에 저장).
+- PDF 파일을 **드래그 앤 드롭**하여 분석을 시작하세요!
+
+### 방법 2: 실행 파일 (CLI)
 1. 분석하고 싶은 PDF 파일들을 `papers/` 폴더 안에 넣습니다. (하위 폴더에 넣어도 됩니다.)
 2. 프로그램을 실행합니다.
 

@@ -160,7 +160,13 @@ def parse_content_to_blocks(markdown_text):
     return blocks
 
 def create_notion_page(database_id, metadata, content_markdown, file_link):
-    client = Client(auth=os.environ.get("NOTION_KEY"))
+    try:
+        import streamlit as st
+        notion_key = st.secrets.get("NOTION_KEY") or os.environ.get("NOTION_KEY")
+    except ImportError:
+        notion_key = os.environ.get("NOTION_KEY")
+
+    client = Client(auth=notion_key)
     
     # Map Properties (Using correct Korean Schema)
     props = {}

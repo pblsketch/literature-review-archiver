@@ -44,7 +44,8 @@ def main():
     pdf_files = glob.glob(os.path.join("papers", "**", "*.pdf"), recursive=True)
     
     # Filter out files already in 'processed' folder to avoid re-processing if user moves them back or if glob is too greedy
-    # pdf_files = [f for f in pdf_files if "processed" not in f.split(os.sep)]  <-- COMMENTED OUT TO ALLOW RE-PROCESSING
+    # Filter out files already in 'processed' folder to avoid re-processing
+    pdf_files = [f for f in pdf_files if "processed" not in f.split(os.sep)]
 
     if not pdf_files:
         print("⚠️ No PDF files found in ./papers or its subfolders.")

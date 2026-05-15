@@ -162,73 +162,138 @@ def parse_content_to_blocks(markdown_text):
 def create_notion_page(database_id, metadata, content_markdown, file_link):
     try:
         import streamlit as st
-        notion_key = st.secrets.get("NOTION_KEY") or os.environ.get("NOTION_KEY")
+        try:
+             notion_key = st.secrets.get("NOTION_KEY") or os.environ.get("NOTION_KEY")
+        except (FileNotFoundError, Exception): # Fallback if secrets.toml is missing
+             notion_key = os.environ.get("NOTION_KEY")
     except ImportError:
         notion_key = os.environ.get("NOTION_KEY")
 
     client = Client(auth=notion_key)
     
-    # Map Properties (Using correct Korean Schema)
-    props = {}
-    
-    # Title -> 논문 제목
-    props['논문 제목'] = {'title': [{'text': {'content': metadata.get('Title', 'Untitled')}}]}
-    
-    # Authors -> 저자
-    if metadata.get('Authors'):
-        props['저자'] = {'rich_text': [{'text': {'content': str(metadata['Authors'])}}]}
-        
-    # Year -> 발행연도
-    if metadata.get('Year'):
-        props['발행연도'] = {'number': int(metadata['Year'])}
-        
-    # Journal -> 학술지명/출처
-    if metadata.get('Journal'):
-        props['학술지명/출처'] = {'rich_text': [{'text': {'content': str(metadata['Journal'])}}]}
-        
-    # Page -> 페이지
-    if metadata.get('Page'):
-        # Store page range as text (e.g., "29-45")
-        props['페이지'] = {'rich_text': [{'text': {'content': str(metadata['Page'])}}]}
+    # Retrieve Database Schema to validate properties
+    valid_properties = []
+    try:
+        db_info = client.databases.retrieve(database_id)
+        valid_properties = list(db_info.get("properties", {}).keys())
+        print(f"🔎 DEBUG: Real Schema Keys from Notion: {valid_properties}")
+    except Exception as e:
+        print(f"⚠️ Failed to retrieve database schema: {e}")
+        # Fallback: Hardcode properties based on User's explicit list (Capitalized)
+        valid_properties = [
+            'Name', 'Authors', 'Collections', 'Tags', 'URL', '읽음 상태', 
+            'Volume', 'Issue', 'Pages', 'Publication', 'DOI', '인용 여부', 'Date'
+        ]
+        print(f"🔎 DEBUG: Using Fallback Schema: {valid_properties}")
 
-        
-    # Keywords -> 핵심 키워드
-    if metadata.get('Keywords'):
-        props['핵심 키워드'] = {'multi_select': [{'name': k.replace(',', '')} for k in metadata['Keywords']]}
-        
-    # Type -> 유형
-    if metadata.get('Type'):
-        props['유형'] = {'select': {'name': metadata['Type']}}
-        
-    # Status -> 읽음 상태
-    props['읽음 상태'] = {'status': {'name': '읽을 예정'}}
+    # Helper: Create case-insensitive map
+    real_key_map = {k.lower().strip(): k for k in valid_properties}
+
+    # Helper to clean/check keys
+    final_props = {}
     
-    # Volume_Issue -> 권(호)
-    if metadata.get('Volume_Issue'):
-        props['권(호)'] = {'rich_text': [{'text': {'content': str(metadata['Volume_Issue'])}}]}
+    def add_prop(key_candidates, value_dict, is_required=False):
+        """
+        Tries to find a valid key from candidates (Case Insensitive).
+        """
+        if not real_key_map:
+             if is_required:
+                 # If we have no schema info, simply use the first candidate (Capitalized usually)
+                 final_props[key_candidates[0]] = value_dict
+             return
+
+        for key in key_candidates:
+            clean_key = key.lower().strip()
+            if clean_key in real_key_map:
+                real_key = real_key_map[clean_key]
+                final_props[real_key] = value_dict
+                return
         
-    # DOI -> URL/DOI
+        # If required and no match found, force it (might error, but better than missing title)
+        if is_required:
+             final_props[key_candidates[0]] = value_dict
+
+    # --- Construct Properties ---
+    
+    # Name (REQUIRED)
+    add_prop(['Name', 'name', '논문 제목', 'Title'], {'title': [{'text': {'content': metadata.get('Title', 'Untitled')}}]}, is_required=True)
+    
+    # Authors
+    if metadata.get('Authors'):
+        add_prop(['Authors', 'authors', 'Author', '저자'], {'rich_text': [{'text': {'content': str(metadata['Authors'])}}]})
+        
+    # Date (Number)
+    if metadata.get('Year'):
+        add_prop(['Date', 'date', 'Year', '발행연도'], {'number': int(metadata['Year'])})
+        
+    # Publication
+    if metadata.get('Journal'):
+        add_prop(['Publication', 'publication', 'Journal', '학술지명/출처'], {'rich_text': [{'text': {'content': str(metadata['Journal'])}}]})
+        
+    # Pages
+    if metadata.get('Page'):
+        add_prop(['Pages', 'pages', 'Page', '페이지'], {'rich_text': [{'text': {'content': str(metadata['Page'])}}]})
+
+    # Tags (Multi-select)
+    if metadata.get('Keywords'):
+        tags = []
+        for k in metadata['Keywords']:
+            clean_tag = k.replace(',', '').strip()
+            if clean_tag:
+                tags.append({'name': clean_tag})
+        if tags:
+            add_prop(['Tags', 'tags', 'Keywords', '핵심 키워드'], {'multi_select': tags})
+        
+    # Collections (Multi-select observed in screenshot)
+    if metadata.get('Type'):
+        # Assuming Multi-select based on user screenshot
+        add_prop(['Collections', 'collections', 'Type', '유형'], {'multi_select': [{'name': metadata['Type']}]})
+    
+    # Status
+    add_prop(['읽음 상태', 'Status', 'status'], {'status': {'name': '읽을 예정'}}) 
+    
+    # Volume / Issue
+    vol_issue = metadata.get('Volume_Issue', '')
+    if vol_issue:
+        match = re.match(r"(\d+)\s*\((.+)\)", str(vol_issue))
+        if match:
+             add_prop(['Volume', 'volume', '권'], {'rich_text': [{'text': {'content': match.group(1)}}]})
+             add_prop(['Issue', 'issue', '호'], {'rich_text': [{'text': {'content': match.group(2)}}]})
+        else:
+             add_prop(['Volume', 'volume', '권'], {'rich_text': [{'text': {'content': str(vol_issue)}}]})
+             # Try to add volume_issue to either field if only one exists or fallback
+             # But here we just keep it simple.
+
+    # DOI (Strictly to DOI column, Link/URL type)
     if metadata.get('DOI'):
-        props['URL/DOI'] = {'url': str(metadata['DOI'])}
+        add_prop(['DOI', 'doi'], {'url': str(metadata['DOI'])})
         
-    # File -> 파일 첨부 (External)
+    # Files / URL (For PDF Link)
     if file_link:
-        props['파일 첨부'] = {
-            'files': [{
-                'type': 'external',
-                'name': 'PDF Link',
-                'external': {'url': file_link}
-            }]
-        }
+        # 1. Try 'Files' (File type)
+        file_prop_exists = any(k in real_key_map for k in ['files', 'file', '파일 첨부', 'pdf'])
+        
+        if file_prop_exists:
+             add_prop(['Files', 'files', 'File', '파일 첨부', 'PDF'], {
+                'files': [{
+                    'type': 'external',
+                    'name': 'PDF Link',
+                    'external': {'url': file_link}
+                }]
+            })
+        else:
+            # 2. Fallback to 'URL' (Url type)
+            add_prop(['URL', 'url', 'Link'], {'url': file_link})
         
     # Parse Body
     children = parse_content_to_blocks(content_markdown)
     
-     # print("Creating Notion Page...")
+    print(f"🔎 DEBUG: Final Properties to Send: {list(final_props.keys())}")
+    
     try:
         client.pages.create(
             parent={'database_id': database_id},
-            properties=props,
+            properties=final_props,
             children=children
         )
     except Exception as e:

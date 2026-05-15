@@ -11,15 +11,21 @@ def get_drive_service():
     from google.oauth2 import service_account
 
     # 1. Try Streamlit Secrets (for Cloud Deployment)
-    if "gcp_service_account" in st.secrets:
-        # Create credentials from the secrets dictionary
-        service_account_info = st.secrets["gcp_service_account"]
-        creds = service_account.Credentials.from_service_account_info(
-            service_account_info,
-            scopes=['https://www.googleapis.com/auth/drive.readonly']
-        )
-        service = build('drive', 'v3', credentials=creds)
-        return service
+    # 1. Try Streamlit Secrets (for Cloud Deployment)
+    try:
+        if "gcp_service_account" in st.secrets:
+            # Create credentials from the secrets dictionary
+            service_account_info = st.secrets["gcp_service_account"]
+            creds = service_account.Credentials.from_service_account_info(
+                service_account_info,
+                scopes=['https://www.googleapis.com/auth/drive.readonly']
+            )
+            service = build('drive', 'v3', credentials=creds)
+            return service
+    except (FileNotFoundError, Exception): 
+        # StreamlitSecretNotFoundError inherits from FileNotFoundError in some versions or is a custom error.
+        # Catching generic Exception here is safer for the local fallback to work reliably.
+        pass
 
     # 2. Fallback to Local Environment (Environment Variable / JSON file)
     # Changed scope to readonly to search for existing files
